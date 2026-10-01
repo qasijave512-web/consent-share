@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Consent Share</title>
+<style>
+*{box-sizing:border-box}body{font-family:system-ui,-apple-system,sans-serif;margin:0;background:#f3f6fb;color:#172033}
+main{max-width:560px;margin:auto;padding:20px}.card{background:#fff;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 4px 18px #0001}
+h1{margin:0 0 5px}.muted{color:#667085}.notice{padding:12px;border-radius:12px;background:#eff6ff;color:#1e40af}
+label{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 0;border-top:1px solid #eee}
+input{width:22px;height:22px}button{border:0;border-radius:12px;padding:12px 16px;background:#2563eb;color:#fff;font-weight:700;margin-top:8px}
+.status{padding:12px;border-radius:12px;background:#ecfdf3;color:#067647;line-height:1.7}.warn{padding:12px;border-radius:12px;background:#fff7ed;color:#9a3412}
+</style>
+</head>
+<body>
+<main>
+<h1>Consent Share</h1>
+<p class="muted">A transparent sharing prototype. You control what is shared.</p>
+
+<div class="card">
+<h3>1. Choose what to share</h3>
+<div class="notice">Nothing is shared until you turn on a permission and save your choices.</div>
+<label>📍 Location <input id="loc" type="checkbox"></label>
+<label>🔋 Battery level <input id="bat" type="checkbox"></label>
+<label>📱 Basic device/browser info <input id="dev" type="checkbox"></label>
+<button onclick="saveChoices()">Save choices</button>
+</div>
+
+<div class="card">
+<h3>2. View your shared data</h3>
+<div id="out" class="muted">No information selected.</div>
+<button onclick="refreshData()">Refresh</button>
+</div>
+
+<div class="card">
+<h3>Privacy</h3>
+<div class="warn">This prototype does not read private messages, passwords, other apps, camera/microphone, or files. A real two-phone version will require a secure backend and explicit consent on each device.</div>
+</div>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+function saveChoices(){
+ const c={loc:$('loc').checked,bat:$('bat').checked,dev:$('dev').checked};
+ localStorage.setItem('consentShareChoices',JSON.stringify(c)); refreshData();
+}
+function esc(s){return String(s).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+async function refreshData(){
+ const c=JSON.parse(localStorage.getItem('consentShareChoices')||'{}');
+ let lines=[];
+ if(c.bat && navigator.getBattery){
+   try{const b=await navigator.getBattery(); lines.push('🔋 Battery: '+Math.round(b.level*100)+'%');}
+   catch{lines.push('🔋 Battery: unavailable');}
+ }
+ if(c.dev) lines.push('📱 Browser/device: '+navigator.userAgent);
+ if(c.loc){
+   if(!navigator.geolocation) lines.push('📍 Location: unavailable');
+   else navigator.geolocation.getCurrentPosition(
+     p=>{lines.push('📍 Location: '+p.coords.latitude.toFixed(5)+', '+p.coords.longitude.toFixed(5)); render(lines);},
+     ()=>{lines.push('📍 Location: permission denied');render(lines);}
+   );
+ }
+ render(lines);
+}
+function render(lines){$('out').innerHTML=lines.length?'<div class="status">'+lines.map(esc).join('<br>')+'</div>':'No information selected.';}
+(()=>{const c=JSON.parse(localStorage.getItem('consentShareChoices')||'{}');$('loc').checked=!!c.loc;$('bat').checked=!!c.bat;$('dev').checked=!!c.dev;})();
+</script>
+</body>
+</html>

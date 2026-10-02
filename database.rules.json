@@ -1,6 +1,7 @@
 {
   "rules": {
-    "pairings": {"$code": {".read": true, ".write": true}},
-    "shares": {"$code": {".read": true, ".write": true}}
+    "pairings": { "$code": { ".read": true, ".write": true } },
+    "shares": { "$code": { ".read": true, ".write": true } },
+    "signals": { "$code": { ".read": true, ".write": true } }
   }
 }

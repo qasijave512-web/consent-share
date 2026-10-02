@@ -4,185 +4,109 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080c18">
-<title>SafeShare — Real-Time Consent Demo</title>
+<title>SafeShare — P2P Media</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#080c18;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
-main{max-width:760px;margin:auto;padding:18px 16px 48px}.top{display:flex;justify-content:space-between;align-items:center}.logo{font-size:25px;font-weight:850}.badge{font-size:12px;padding:7px 10px;border-radius:99px;background:#13233b;color:#9dcbff}
-.card{background:#101729;border:1px solid #202b43;border-radius:20px;padding:18px;margin:14px 0}h1{font-size:27px;margin:6px 0}h2{font-size:18px;margin:0 0 12px}p{color:#aeb8cc;line-height:1.5}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-button{border:0;border-radius:12px;padding:12px 15px;background:#2e7bd6;color:#fff;font-weight:800}.tab{background:#0c1221;border:1px solid #26314b}.tab.active{background:#18345a}
-input{width:100%;padding:13px;border-radius:12px;border:1px solid #303c56;background:#0b1120;color:#fff;font-size:18px;text-align:center;letter-spacing:2px}.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #222c40}.row:last-child{border:0}
-.metric{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #222c40}.metric:last-child{border:0}.ok{color:#9fe0b4}.warn{color:#f5c66e}.danger{background:#7e2c38}.hidden{display:none}.code{text-align:center;font-size:32px;font-weight:900;letter-spacing:8px;padding:10px}
+*{box-sizing:border-box}body{margin:0;background:#080c18;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}main{max-width:820px;margin:auto;padding:18px 16px 60px}.top{display:flex;justify-content:space-between;align-items:center}.logo{font-size:25px;font-weight:850}.badge{font-size:12px;padding:7px 10px;border-radius:99px;background:#13233b;color:#9dcbff}.card{background:#101729;border:1px solid #202b43;border-radius:20px;padding:18px;margin:14px 0}h1{font-size:27px;margin:6px 0}h2{font-size:18px;margin:0 0 12px}p{color:#aeb8cc;line-height:1.5}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}button{border:0;border-radius:12px;padding:12px 15px;background:#2e7bd6;color:#fff;font-weight:800;cursor:pointer}.tab{background:#0c1221;border:1px solid #26314b}.tab.active{background:#18345a}input[type=text]{width:100%;padding:13px;border-radius:12px;border:1px solid #303c56;background:#0b1120;color:#fff;font-size:18px;text-align:center;letter-spacing:2px}.row{display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid #222c40}.row:last-child{border:0}.metric{display:flex;justify-content:space-between;gap:14px;padding:12px 0;border-bottom:1px solid #222c40}.metric:last-child{border:0}.ok{color:#9fe0b4}.warn{color:#f5c66e}.danger{background:#7e2c38}.hidden{display:none}.code{text-align:center;font-size:32px;font-weight:900;letter-spacing:8px;padding:10px}.status{padding:10px 12px;border-radius:12px;background:#0b1220;color:#aeb8cc}.media-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.media-item{background:#0b1220;border:1px solid #25314a;border-radius:14px;padding:10px}.media-item img,.media-item video{width:100%;max-height:320px;object-fit:contain;border-radius:10px;background:#000}.media-name{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:8px 0}.progress{height:8px;background:#202b43;border-radius:99px;overflow:hidden}.progress>div{height:100%;width:0;background:#4d9cf5;transition:width .2s}.small{font-size:12px;color:#8490a7}.notice{font-size:13px}.filebox{border:1px dashed #3b4a68;border-radius:14px;padding:14px}.filebox input{width:100%}
 </style>
 </head>
 <body><main>
-<div class="top"><div class="logo">SafeShare</div><div class="badge">Consent-first</div></div>
-<div class="card"><h1>Real-time two-phone demo</h1><p>Owner controls exactly what is shared. Viewer sees only approved fields. This demo uses Firebase Realtime Database when configured.</p>
+<div class="top"><div class="logo">SafeShare</div><div class="badge">Consent-first • P2P</div></div>
+<div class="card"><h1>Two-phone sharing</h1><p>Firebase is used only to pair the two browsers and exchange connection signals. Selected photos and videos travel directly between the two devices using WebRTC; they are not uploaded to Firebase Storage.</p>
 <div class="tabs"><button id="ownerTab" class="tab active">Owner</button><button id="viewerTab" class="tab">Viewer</button></div></div>
 
 <section id="owner">
-<div class="card"><h2>Pairing</h2><p>Create a six-digit code. Give it to the viewer. The code expires after 10 minutes in this demo.</p>
-<div id="code" class="code">------</div><button onclick="createPair()">Create pairing code</button><p id="pairMsg"></p></div>
-<div class="card"><h2>Sharing controls</h2>
-<div class="row"><span>Location</span><input id="location" type="checkbox" style="width:auto"></div>
-<div class="row"><span>Battery</span><input id="battery" type="checkbox" style="width:auto"></div>
-<div class="row"><span>Basic device info</span><input id="device" type="checkbox" style="width:auto"></div>
-<br><button onclick="publish()">Save & publish approved data</button><p id="ownerMsg"></p></div>
+<div class="card"><h2>1. Pair this phone</h2><p>Create a temporary six-digit code and give it to the person who will view the approved data. The code expires after 10 minutes.</p><div id="code" class="code">------</div><button onclick="createPair()">Create pairing code</button><p id="pairMsg"></p></div>
+<div class="card"><h2>2. Approved device data</h2>
+<div class="row"><span>Location</span><input id="location" type="checkbox"></div>
+<div class="row"><span>Battery</span><input id="battery" type="checkbox"></div>
+<div class="row"><span>Basic device info</span><input id="device" type="checkbox"></div>
+<br><button onclick="publish()">Publish approved data</button><p id="ownerMsg"></p></div>
+<div class="card"><h2>3. Select photos & videos</h2><p>Only files you choose here are sent. Nothing scans or uploads automatically.</p><div class="filebox"><input id="mediaFiles" type="file" accept="image/*,video/*" multiple></div><br><button onclick="sendSelectedMedia()">Send selected media</button><p id="mediaMsg"></p><div class="progress"><div id="sendProgress"></div></div><p id="sendStatus" class="small"></p></div>
 </section>
 
 <section id="viewer" class="hidden">
-<div class="card"><h2>Connect to owner</h2><input id="viewerCode" maxlength="6" placeholder="Pairing code"><br><br><button onclick="connect()">Connect</button><p id="viewerMsg"></p></div>
+<div class="card"><h2>Connect to owner</h2><input id="viewerCode" maxlength="6" placeholder="Pairing code" inputmode="numeric"><br><br><button onclick="connect()">Connect</button><p id="viewerMsg"></p></div>
 <div class="card"><h2>Dashboard</h2><div id="dashboard"><p>No connection yet.</p></div></div>
-<div class="card"><h2>Shared photos & videos</h2><div id="mediaGallery"><p>No media shared yet.</p></div></div>
+<div class="card"><h2>Photos & videos shared with me</h2><div id="mediaGallery"><p>Nothing received yet.</p></div></div>
 </section>
 
-
-<section id="mediaOwner" class="card">
-<h2>Selected photos & videos</h2>
-<p>Only files you explicitly choose below will be uploaded and shared with the paired viewer.</p>
-<input id="mediaFiles" type="file" accept="image/*,video/*" multiple>
-<br><br>
-<button onclick="uploadSelectedMedia()">Upload selected media</button>
-<p id="mediaMsg"></p>
-<div id="ownerMediaList"></div>
-</section>
-<div class="card"><h2>Privacy boundary</h2><p>This demo does not access passwords, private messages, other apps, hidden camera/microphone feeds, or unrestricted files. A production Android app must request OS permissions visibly and allow revocation.</p></div>
+<div class="card"><h2>Privacy boundary</h2><p class="notice">This prototype does not access private messages, passwords, other apps, hidden camera/microphone feeds, or an entire gallery. Media is transferred only after the owner selects files and presses the send button. The viewer cannot request hidden files.</p><p class="small">P2P connections can fail on some networks because this prototype uses public STUN servers and no TURN server. A production version should add authentication, authorization, abuse controls, and a TURN service.</p></div>
 </main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, remove, push } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
-import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js";
+import { getDatabase, ref, set, get, onValue, onChildAdded, push, remove } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
 
-/* Replace these placeholders with your Firebase Web App config. */
-const firebaseConfig = {
-  apiKey: "AIzaSyCRLPBHSzvqyb98Q_q2sR9NTvycM0m_sMY",
-  authDomain: "safeshare-e52ad.firebaseapp.com",
-  databaseURL: "https://safeshare-e52ad-default-rtdb.firebaseio.com",
-  projectId: "safeshare-e52ad",
-  storageBucket: "safeshare-e52ad.firebasestorage.app",
-  messagingSenderId: "985062431019",
-  appId: "1:985062431019:web:b86dd7b7e3fba9c8c24d6e",
-  measurementId: "G-K7J6VJ8J1F"
+const firebaseConfig={
+ apiKey:"AIzaSyCRLPBHSzvqyb98Q_q2sR9NTvycM0m_sMY",
+ authDomain:"safeshare-e52ad.firebaseapp.com",
+ databaseURL:"https://safeshare-e52ad-default-rtdb.firebaseio.com",
+ projectId:"safeshare-e52ad",
+ storageBucket:"safeshare-e52ad.firebasestorage.app",
+ messagingSenderId:"985062431019",
+ appId:"1:985062431019:web:b86dd7b7e3fba9c8c24d6e",
+ measurementId:"G-K7J6VJ8J1F"
 };
-const configured = !Object.values(firebaseConfig).some(v=>String(v).startsWith("YOUR_"));
-let db=null, storage=null;
-if(configured){ const app=initializeApp(firebaseConfig); db=getDatabase(app); storage=getStorage(app); }
-
-const $=id=>document.getElementById(id);
-let localCode=localStorage.getItem("ss_code")||"";
-let viewerPair=localStorage.getItem("ss_viewer")||"";
-
-$("ownerTab").onclick=()=>{owner.classList.remove("hidden");viewer.classList.add("hidden")};
-$("viewerTab").onclick=()=>{viewer.classList.remove("hidden");owner.classList.add("hidden")};
-
+const app=initializeApp(firebaseConfig); const db=getDatabase(app); const $=id=>document.getElementById(id);
+let localCode=localStorage.getItem("ss_code")||""; let viewerPair=localStorage.getItem("ss_viewer")||"";
+let pc=null, dc=null, role=null; let ownerCandidateSeen=new Set(), viewerCandidateSeen=new Set(); let receiving=null;
+const RTC_CONFIG={iceServers:[{urls:"stun:stun.l.google.com:19302"},{urls:"stun:stun1.l.google.com:19302"}]};
 function msg(el,t,cls=""){el.textContent=t;el.className=cls}
-window.createPair=async()=>{
- if(!db){msg($("pairMsg"),"Add your Firebase configuration first.","warn");return}
- localCode=String(Math.floor(100000+Math.random()*900000));
- localStorage.setItem("ss_code",localCode);
- await set(ref(db,"pairings/"+localCode),{createdAt:Date.now(),expiresAt:Date.now()+600000,active:true});
- $("code").textContent=localCode; msg($("pairMsg"),"Code created. Share it with the viewer.","ok");
-};
+function setTab(which){if(which==='owner'){owner.classList.remove('hidden');viewer.classList.add('hidden');ownerTab.classList.add('active');viewerTab.classList.remove('active')}else{viewer.classList.remove('hidden');owner.classList.add('hidden');viewerTab.classList.add('active');ownerTab.classList.remove('active')}}
+ownerTab.onclick=()=>setTab('owner'); viewerTab.onclick=()=>setTab('viewer');
+function resetPeer(){try{dc?.close()}catch{} try{pc?.close()}catch{} dc=null;pc=null;receiving=null;}
+async function createPair(){
+ resetPeer(); role='owner';
+ localCode=String(Math.floor(100000+Math.random()*900000)); localStorage.setItem('ss_code',localCode); $('code').textContent=localCode;
+ await remove(ref(db,'pairings/'+localCode)); await set(ref(db,'pairings/'+localCode),{createdAt:Date.now(),expiresAt:Date.now()+600000,active:true});
+ msg($('pairMsg'),'Code created. Open Viewer on the other phone and enter this code.','ok');
+ await startOwnerPeer(localCode);
+}
+async function startOwnerPeer(code){
+ pc=new RTCPeerConnection(RTC_CONFIG); dc=pc.createDataChannel('safeshare',{ordered:true}); setupDataChannel(dc,'owner');
+ pc.onicecandidate=e=>{if(e.candidate) push(ref(db,`signals/${code}/ownerCandidates`),e.candidate.toJSON())};
+ pc.onconnectionstatechange=()=>{msg($('pairMsg'),`Pairing ${pc.connectionState}.`,pc.connectionState==='connected'?'ok':'')};
+ const offer=await pc.createOffer(); await pc.setLocalDescription(offer); await set(ref(db,`signals/${code}/offer`),{type:offer.type,sdp:offer.sdp});
+ onValue(ref(db,`signals/${code}/answer`),async snap=>{const a=snap.val();if(a&&pc&&pc.signalingState!=='stable'){try{await pc.setRemoteDescription(a)}catch(e){}}});
+ onChildAdded(ref(db,`signals/${code}/viewerCandidates`),async snap=>{if(ownerCandidateSeen.has(snap.key))return;ownerCandidateSeen.add(snap.key);try{await pc.addIceCandidate(snap.val())}catch(e){}});
+}
+async function connect(){
+ resetPeer(); role='viewer'; const c=$('viewerCode').value.trim(); if(!/^\d{6}$/.test(c)){msg($('viewerMsg'),'Enter the six-digit pairing code.','warn');return}
+ const pair=await get(ref(db,'pairings/'+c)); if(!pair.exists()||!pair.val().active||Date.now()>pair.val().expiresAt){msg($('viewerMsg'),'Invalid or expired pairing code.','warn');return}
+ viewerPair=c;localStorage.setItem('ss_viewer',c); await startViewerPeer(c); msg($('viewerMsg'),'Pairing started. Waiting for the owner phone…');
+}
+async function startViewerPeer(code){
+ pc=new RTCPeerConnection(RTC_CONFIG);
+ pc.ondatachannel=e=>{dc=e.channel;setupDataChannel(dc,'viewer')};
+ pc.onicecandidate=e=>{if(e.candidate)push(ref(db,`signals/${code}/viewerCandidates`),e.candidate.toJSON())};
+ pc.onconnectionstatechange=()=>{msg($('viewerMsg'),`Connection ${pc.connectionState}.`,pc.connectionState==='connected'?'ok':'')};
+ const offerSnap=await get(ref(db,`signals/${code}/offer`)); if(!offerSnap.exists()){msg($('viewerMsg'),'Owner has not created the connection yet. Ask them to create a new code.','warn');return}
+ await pc.setRemoteDescription(offerSnap.val()); const answer=await pc.createAnswer(); await pc.setLocalDescription(answer); await set(ref(db,`signals/${code}/answer`),{type:answer.type,sdp:answer.sdp});
+ onChildAdded(ref(db,`signals/${code}/ownerCandidates`),async snap=>{if(viewerCandidateSeen.has(snap.key))return;viewerCandidateSeen.add(snap.key);try{await pc.addIceCandidate(snap.val())}catch(e){}});
+}
+function setupDataChannel(ch,who){
+ ch.binaryType='arraybuffer'; ch.onopen=()=>{if(who==='owner')msg($('sendStatus'),'Direct connection ready. Select media and press Send.','ok');else msg($('viewerMsg'),'Connected — direct P2P link is ready.','ok')};
+ ch.onclose=()=>{if(who==='owner')msg($('sendStatus'),'Direct connection closed.','warn');else msg($('viewerMsg'),'Connection closed.','warn')};
+ ch.onerror=()=>{if(who==='owner')msg($('sendStatus'),'P2P connection error.','warn')};
+ ch.onmessage=handleDataMessage;
+}
 async function collectApprovedData(){
  const data={updatedAt:Date.now()};
- if($('location').checked){
-  try{
-   const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:0}));
-   data.location={status:'shared',latitude:Number(pos.coords.latitude.toFixed(6)),longitude:Number(pos.coords.longitude.toFixed(6)),accuracy:Math.round(pos.coords.accuracy||0)};
-  }catch(e){ data.location={status:'shared',available:false,message:'Location permission denied or unavailable.'}; }
- }else data.location={status:'not_shared'};
- if($('battery').checked){
-  try{
-   if(navigator.getBattery){const b=await navigator.getBattery();data.battery={status:'shared',level:Math.round(b.level*100),charging:!!b.charging};}
-   else data.battery={status:'shared',available:false,message:'Battery API not supported by this browser.'};
-  }catch(e){data.battery={status:'shared',available:false,message:'Battery information unavailable.'};}
- }else data.battery={status:'not_shared'};
- if($('device').checked){data.device={status:'shared',platform:navigator.platform||'Unknown',language:navigator.language||'Unknown',screen:(screen.width||0)+'×'+(screen.height||0),browser:navigator.userAgent};}
- else data.device={status:'not_shared'};
+ if($('location').checked){try{const p=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout:10000,maximumAge:0}));data.location={status:'shared',latitude:Number(p.coords.latitude.toFixed(6)),longitude:Number(p.coords.longitude.toFixed(6)),accuracy:Math.round(p.coords.accuracy||0)}}catch(e){data.location={status:'shared',available:false,message:'Location permission denied or unavailable.'}}}else data.location={status:'not_shared'};
+ if($('battery').checked){try{if(navigator.getBattery){const b=await navigator.getBattery();data.battery={status:'shared',level:Math.round(b.level*100),charging:!!b.charging}}else data.battery={status:'shared',available:false,message:'Battery API not supported by this browser.'}}catch(e){data.battery={status:'shared',available:false,message:'Battery information unavailable.'}}}else data.battery={status:'not_shared'};
+ if($('device').checked)data.device={status:'shared',platform:navigator.platform||'Unknown',language:navigator.language||'Unknown',screen:(screen.width||0)+'×'+(screen.height||0),browser:navigator.userAgent}; else data.device={status:'not_shared'};
  return data;
 }
-window.publish=async()=>{
- if(!db||!localCode){msg($('ownerMsg'),'Create a pairing code first.','warn');return}
- msg($('ownerMsg'),'Collecting approved data…');
- const data=await collectApprovedData();
- await set(ref(db,'shares/'+localCode),data);
- msg($('ownerMsg'),'Approved data published.','ok');
-};
-window.connect=async()=>{
- if(!db){msg($("viewerMsg"),"Add your Firebase configuration first.","warn");return}
- const c=$("viewerCode").value.trim();
- const snap=await get(ref(db,"pairings/"+c));
- if(!snap.exists()||!snap.val().active||Date.now()>snap.val().expiresAt){msg($("viewerMsg"),"Invalid or expired pairing code.","warn");return}
- viewerPair=c;localStorage.setItem("ss_viewer",c);msg($("viewerMsg"),"Connected.","ok");listen(c);
-};
-function listen(c){
- onValue(ref(db,'shares/'+c),snap=>{
-  const d=snap.val();
-  if(!d){$('dashboard').innerHTML='<p>Owner has not published approved data yet.</p>';return}
-  const loc=d.location?.status==='shared' ? (d.location.latitude!=null ? `${d.location.latitude}, ${d.location.longitude} (±${d.location.accuracy||0} m)` : (d.location.message||'Shared, but unavailable')) : 'Not shared';
-  const bat=d.battery?.status==='shared' ? (d.battery.level!=null ? `${d.battery.level}% ${d.battery.charging?'• Charging':'• Not charging'}` : (d.battery.message||'Shared, but unavailable')) : 'Not shared';
-  const dev=d.device?.status==='shared' ? `${d.device.platform||'Unknown'} • ${d.device.screen||''} • ${d.device.language||''}` : 'Not shared';
-  $('dashboard').innerHTML=`
-  <div class="metric"><span>Location</span><b>${loc}</b></div>
-  <div class="metric"><span>Battery</span><b>${bat}</b></div>
-  <div class="metric"><span>Device info</span><b>${dev}</b></div>
-  <p>Last update: ${new Date(d.updatedAt).toLocaleString()}</p>
-  <button class="danger" onclick="revoke()">Revoke viewer access</button>`;
- });
-}
-
-window.uploadSelectedMedia=async()=>{
- if(!db||!storage||!localCode){msg($("mediaMsg"),"Create a pairing code first.","warn");return}
- const files=[...$("mediaFiles").files];
- if(!files.length){msg($("mediaMsg"),"Choose at least one photo or video first.","warn");return}
- msg($("mediaMsg"),"Uploading selected media…");
- let done=0;
- for(const file of files){
-   if(!(file.type.startsWith("image/")||file.type.startsWith("video/"))) continue;
-   if(file.size>50*1024*1024){continue}
-   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
-   const path=`shares/${localCode}/${Date.now()}_${Math.random().toString(36).slice(2)}_${safeName}`;
-   const sref=storageRef(storage,path);
-   await uploadBytes(sref,file,{contentType:file.type});
-   const url=await getDownloadURL(sref);
-   const itemRef=push(ref(db,`media/${localCode}`));
-   await set(itemRef,{name:file.name,type:file.type,size:file.size,url,createdAt:Date.now()});
-   done++;
- }
- msg($("mediaMsg"),`${done} selected file(s) shared with the paired viewer.`,"ok");
- $("mediaFiles").value="";
- loadOwnerMedia(localCode);
-};
-function renderMedia(items,targetId){
- const el=$(targetId);
- if(!items.length){el.innerHTML="<p>No media shared yet.</p>";return}
- el.innerHTML=items.map(x=>{
-   const safe=x.url.replace(/"/g,"&quot;");
-   const name=(x.name||"Shared media").replace(/[<>&"]/g,"");
-   if((x.type||"").startsWith("video/"))
-     return `<div class="card"><p>${name}</p><video src="${safe}" controls playsinline style="width:100%;border-radius:12px"></video></div>`;
-   return `<div class="card"><p>${name}</p><img src="${safe}" alt="${name}" style="width:100%;border-radius:12px;display:block"></div>`;
- }).join("");
-}
-async function loadOwnerMedia(c){
- if(!db||!c)return;
- const snap=await get(ref(db,`media/${c}`));
- const v=snap.val()||{};
- renderMedia(Object.values(v),"ownerMediaList");
-}
-function listenMedia(c){
- if(!db)return;
- onValue(ref(db,`media/${c}`),snap=>{
-   const v=snap.val()||{};
-   renderMedia(Object.values(v).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),"mediaGallery");
- });
-}
-window.revoke=async()=>{
- if(!db||!viewerPair)return;
- await remove(ref(db,"pairings/"+viewerPair));await remove(ref(db,"shares/"+viewerPair));
- $("dashboard").innerHTML="<p>Access revoked.</p>";localStorage.removeItem("ss_viewer");
-};
-if(localCode)$("code").textContent=localCode;
-if(viewerPair){listen(viewerPair);listenMedia(viewerPair);}
-</script>
-</body></html>
+async function publish(){if(!localCode){msg($('ownerMsg'),'Create a pairing code first.','warn');return}msg($('ownerMsg'),'Collecting approved data…');const data=await collectApprovedData();await set(ref(db,'shares/'+localCode),data);msg($('ownerMsg'),'Approved data published through Firebase. Media will use the direct P2P link.','ok')}
+function renderDashboard(d){const loc=d.location?.status==='shared'?(d.location.latitude!=null?`${d.location.latitude}, ${d.location.longitude} (±${d.location.accuracy||0} m)`:(d.location.message||'Shared, but unavailable')):'Not shared';const bat=d.battery?.status==='shared'?(d.battery.level!=null?`${d.battery.level}% ${d.battery.charging?'• Charging':'• Not charging'}`:(d.battery.message||'Shared, but unavailable')):'Not shared';const dev=d.device?.status==='shared'?`${d.device.platform||'Unknown'} • ${d.device.screen||''} • ${d.device.language||''}`:'Not shared';$('dashboard').innerHTML=`<div class="metric"><span>Location</span><b>${loc}</b></div><div class="metric"><span>Battery</span><b>${bat}</b></div><div class="metric"><span>Device info</span><b>${dev}</b></div><p>Last update: ${new Date(d.updatedAt).toLocaleString()}</p><button class="danger" onclick="revoke()">Revoke viewer access</button>`}
+function listenShare(c){onValue(ref(db,'shares/'+c),snap=>{const d=snap.val();if(!d){$('dashboard').innerHTML='<p>Owner has not published approved data yet.</p>';return}renderDashboard(d)})}
+function safeText(s){return String(s).replace(/[<>&"]/g,'')}
+function addMediaToGallery(blob,name,type){const url=URL.createObjectURL(blob);const wrap=document.createElement('div');wrap.className='media-item';const n=document.createElement('div');n.className='media-name';n.textContent=name;let el;if(type.startsWith('video/')){el=document.createElement('video');el.controls=true;el.playsInline=true}else{el=document.createElement('img');el.alt=name}el.src=url;wrap.appendChild(n);wrap.appendChild(el);$('mediaGallery').prepend(wrap)}
+function handleDataMessage(e){if(typeof e.data==='string'){let m;try{m=JSON.parse(e.data)}catch{return}if(m.kind==='file-start'){receiving={name:m.name,type:m.type,size:m.size,received:0,chunks:[]};msg($('viewerMsg'),`Receiving ${safeText(m.name)}…`)}else if(m.kind==='file-end'&&receiving){const r=receiving;if(r.received!==r.size){msg($('viewerMsg'),'The media transfer ended early.','warn');receiving=null;return}const blob=new Blob(r.chunks,{type:r.type});addMediaToGallery(blob,r.name,r.type);msg($('viewerMsg'),`Received ${safeText(r.name)}. It was transferred directly from the owner phone.`,'ok');receiving=null}return}if(receiving){const chunk=e.data instanceof ArrayBuffer?new Uint8Array(e.data):new Uint8Array(e.data);receiving.chunks.push(chunk);receiving.received+=chunk.byteLength}}
+function waitBuffer(){return new Promise(res=>{if(!dc||dc.bufferedAmount<4*1024*1024)return res();const fn=()=>{dc?.removeEventListener('bufferedamountlow',fn);res()};dc.bufferedAmountLowThreshold=1024*1024;dc.addEventListener('bufferedamountlow',fn)})}
+async function sendSelectedMedia(){if(!dc||dc.readyState!=='open'){msg($('mediaMsg'),'The direct phone-to-phone connection is not ready. Connect the viewer first.','warn');return}const files=[...$('mediaFiles').files];if(!files.length){msg($('mediaMsg'),'Choose one or more photos/videos first.','warn');return}for(const file of files){if(!(file.type.startsWith('image/')||file.type.startsWith('video/')))continue;if(file.size>100*1024*1024){msg($('mediaMsg'),`${file.name} is over the 100 MB prototype limit.`,'warn');continue}dc.send(JSON.stringify({kind:'file-start',name:file.name,type:file.type,size:file.size}));const chunkSize=64*1024;let sent=0;while(sent<file.size){await waitBuffer();const chunk=await file.slice(sent,Math.min(sent+chunkSize,file.size)).arrayBuffer();dc.send(chunk);sent+=chunk.byteLength;$('sendProgress').style.width=Math.round(sent/file.size*100)+'%';$('sendStatus').textContent=`Sending ${file.name}: ${Math.round(sent/file.size*100)}%`}$('sendProgress').style.width='0%';dc.send(JSON.stringify({kind:'file-end'}));msg($('mediaMsg'),`Sent ${file.name} directly to the paired viewer.`,'ok');await new Promise(r=>setTimeout(r,150))}$('mediaFiles').value=''}
+window.createPair=createPair;window.connect=connect;window.publish=publish;window.sendSelectedMedia=sendSelectedMedia;
+window.revoke=async()=>{if(!viewerPair)return;await remove(ref(db,'pairings/'+viewerPair));await remove(ref(db,'shares/'+viewerPair));resetPeer();$('dashboard').innerHTML='<p>Access revoked.</p>';localStorage.removeItem('ss_viewer')};
+if(localCode)$('code').textContent=localCode;
+if(viewerPair){setTab('viewer');listenShare(viewerPair)}
+</script></body></html>

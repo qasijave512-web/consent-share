@@ -32,14 +32,26 @@ input{width:100%;padding:13px;border-radius:12px;border:1px solid #303c56;backgr
 <section id="viewer" class="hidden">
 <div class="card"><h2>Connect to owner</h2><input id="viewerCode" maxlength="6" placeholder="Pairing code"><br><br><button onclick="connect()">Connect</button><p id="viewerMsg"></p></div>
 <div class="card"><h2>Dashboard</h2><div id="dashboard"><p>No connection yet.</p></div></div>
+<div class="card"><h2>Shared photos & videos</h2><div id="mediaGallery"><p>No media shared yet.</p></div></div>
 </section>
 
+
+<section id="mediaOwner" class="card">
+<h2>Selected photos & videos</h2>
+<p>Only files you explicitly choose below will be uploaded and shared with the paired viewer.</p>
+<input id="mediaFiles" type="file" accept="image/*,video/*" multiple>
+<br><br>
+<button onclick="uploadSelectedMedia()">Upload selected media</button>
+<p id="mediaMsg"></p>
+<div id="ownerMediaList"></div>
+</section>
 <div class="card"><h2>Privacy boundary</h2><p>This demo does not access passwords, private messages, other apps, hidden camera/microphone feeds, or unrestricted files. A production Android app must request OS permissions visibly and allow revocation.</p></div>
 </main>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+import { getDatabase, ref, set, get, onValue, remove, push } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-storage.js";
 
 /* Replace these placeholders with your Firebase Web App config. */
 const firebaseConfig = {
@@ -53,8 +65,8 @@ const firebaseConfig = {
   measurementId: "G-K7J6VJ8J1F"
 };
 const configured = !Object.values(firebaseConfig).some(v=>String(v).startsWith("YOUR_"));
-let db=null;
-if(configured){ db=getDatabase(initializeApp(firebaseConfig)); }
+let db=null, storage=null;
+if(configured){ const app=initializeApp(firebaseConfig); db=getDatabase(app); storage=getStorage(app); }
 
 const $=id=>document.getElementById(id);
 let localCode=localStorage.getItem("ss_code")||"";
@@ -118,12 +130,59 @@ function listen(c){
   <button class="danger" onclick="revoke()">Revoke viewer access</button>`;
  });
 }
+
+window.uploadSelectedMedia=async()=>{
+ if(!db||!storage||!localCode){msg($("mediaMsg"),"Create a pairing code first.","warn");return}
+ const files=[...$("mediaFiles").files];
+ if(!files.length){msg($("mediaMsg"),"Choose at least one photo or video first.","warn");return}
+ msg($("mediaMsg"),"Uploading selected media…");
+ let done=0;
+ for(const file of files){
+   if(!(file.type.startsWith("image/")||file.type.startsWith("video/"))) continue;
+   if(file.size>50*1024*1024){continue}
+   const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+   const path=`shares/${localCode}/${Date.now()}_${Math.random().toString(36).slice(2)}_${safeName}`;
+   const sref=storageRef(storage,path);
+   await uploadBytes(sref,file,{contentType:file.type});
+   const url=await getDownloadURL(sref);
+   const itemRef=push(ref(db,`media/${localCode}`));
+   await set(itemRef,{name:file.name,type:file.type,size:file.size,url,createdAt:Date.now()});
+   done++;
+ }
+ msg($("mediaMsg"),`${done} selected file(s) shared with the paired viewer.`,"ok");
+ $("mediaFiles").value="";
+ loadOwnerMedia(localCode);
+};
+function renderMedia(items,targetId){
+ const el=$(targetId);
+ if(!items.length){el.innerHTML="<p>No media shared yet.</p>";return}
+ el.innerHTML=items.map(x=>{
+   const safe=x.url.replace(/"/g,"&quot;");
+   const name=(x.name||"Shared media").replace(/[<>&"]/g,"");
+   if((x.type||"").startsWith("video/"))
+     return `<div class="card"><p>${name}</p><video src="${safe}" controls playsinline style="width:100%;border-radius:12px"></video></div>`;
+   return `<div class="card"><p>${name}</p><img src="${safe}" alt="${name}" style="width:100%;border-radius:12px;display:block"></div>`;
+ }).join("");
+}
+async function loadOwnerMedia(c){
+ if(!db||!c)return;
+ const snap=await get(ref(db,`media/${c}`));
+ const v=snap.val()||{};
+ renderMedia(Object.values(v),"ownerMediaList");
+}
+function listenMedia(c){
+ if(!db)return;
+ onValue(ref(db,`media/${c}`),snap=>{
+   const v=snap.val()||{};
+   renderMedia(Object.values(v).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0)),"mediaGallery");
+ });
+}
 window.revoke=async()=>{
  if(!db||!viewerPair)return;
  await remove(ref(db,"pairings/"+viewerPair));await remove(ref(db,"shares/"+viewerPair));
  $("dashboard").innerHTML="<p>Access revoked.</p>";localStorage.removeItem("ss_viewer");
 };
 if(localCode)$("code").textContent=localCode;
-if(viewerPair)listen(viewerPair);
+if(viewerPair){listen(viewerPair);listenMedia(viewerPair);}
 </script>
 </body></html>

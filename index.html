@@ -71,13 +71,150 @@ window.createPair=async()=>{
  await set(ref(db,"pairings/"+localCode),{createdAt:Date.now(),expiresAt:Date.now()+600000,active:true});
  $("code").textContent=localCode; msg($("pairMsg"),"Code created. Share it with the viewer.","ok");
 };
+async function collectApprovedData(){
+  const data={updatedAt:Date.now()};
+  if($("location").checked){
+    try{
+      const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:30000}));
+      data.location={status:"shared",latitude:Number(pos.coords.latitude.toFixed(6)),longitude:Number(pos.coords.longitude.toFixed(6)),accuracy:Math.round(pos.coords.accuracy||0)};
+    }catch(e){data.location={status:"shared",available:false,message:"Location permission was not granted or location is unavailable."};}
+  }else data.location={status:"not_shared"};
+  if($("battery").checked){
+    try{
+      if(navigator.getBattery){const b=await navigator.getBattery();data.battery={status:"shared",level:Math.round(b.level*100),charging:!!b.charging};}
+      else data.battery={status:"shared",available:false,message:"Battery information is not supported by this browser."};
+    }catch(e){data.battery={status:"shared",available:false,message:"Battery information unavailable."};}
+  }else data.battery={status:"not_shared"};
+  if($("device").checked){
+    data.device={status:"shared",platform:navigator.platform||"Unknown",language:navigator.language||"Unknown",screen:(screen.width||0)+"×"+(screen.height||0),browser:navigator.userAgent};
+  }else data.device={status:"not_shared"};
+  return data;
+}
 window.publish=async()=>{
  if(!db||!localCode){msg($("ownerMsg"),"Create a pairing code first.","warn");return}
- const data={updatedAt:Date.now(),location:$("location").checked?{status:"shared"}:{status:"not_shared"},
- battery:$("battery").checked?{status:"shared"}:{status:"not_shared"},
- device:$("device").checked?{status:"shared",browser:navigator.userAgent}:{status:"not_shared"}};
+ msg($("ownerMsg"),"Collecting only the data you approved…");
+ const data=await collectApprovedData();
  await set(ref(db,"shares/"+localCode),data);
- msg($("ownerMsg"),"Approved data published.","ok");
+ msg($("ownerMsg"),"Approved data published to the viewer.","ok");
+};
+window.connect=async()=>{
+ if(!db){msg($("viewerMsg"),"Add your Firebase configuration first.","warn");return}
+ const c=$("viewerCode").value.trim();
+ const snap=await get(ref(db,"pairings/"+c));
+ if(!snap.exists()||!snap.val().active||Date.now()>snap.val().expiresAt){msg($("viewerMsg"),"Invalid or expired pairing code.","warn");return}
+ viewerPair=c;localStorage.setItem("ss_viewer",c);msg($("viewerMsg"),"Connected.","ok");listen(c);
+};
+function listen(c){
+ onValue(ref(db,"shares/"+c),snap=>{
+  const d=snap.val();
+  if(!d){$("dashboard").innerHTML="<p>Owner has not published approved data yet.</p>";return}
+  const loc=d.location?.status==="shared"?(d.location?.latitude!=null?`${d.location.latitude}, ${d.location.longitude} (±${d.location.accuracy||0} m)`:(d.location.message||"Shared, but unavailable")):"Not shared";
+  const bat=d.battery?.status==="shared"?(d.battery?.level!=null?`${d.battery.level}% ${d.battery.charging?"• Charging":"• Not charging"}`:(d.battery.message||"Shared, but unavailable")):"Not shared";
+  const dev=d.device?.status==="shared"?`${d.device.platform||"Unknown"} • ${d.device.screen||""}<br><small>${d.device.language||""}</small>`:"Not shared";
+  $("dashboard").innerHTML=`
+  <div class="metric"><span>Location</span><b>${loc}</b></div>
+  <div class="metric"><span>Battery</span><b>${bat}</b></div>
+  <div class="metric"><span>Device info</span><b>${dev}</b></div>
+  <p>Last update: ${new Date(d.updatedAt).toLocaleString()}</p>
+  <button class="danger" onclick="revoke()">Revoke viewer access</button>`;
+octype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080c18">
+<title>SafeShare — Real-Time Consent Demo</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#080c18;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:760px;margin:auto;padding:18px 16px 48px}.top{display:flex;justify-content:space-between;align-items:center}.logo{font-size:25px;font-weight:850}.badge{font-size:12px;padding:7px 10px;border-radius:99px;background:#13233b;color:#9dcbff}
+.card{background:#101729;border:1px solid #202b43;border-radius:20px;padding:18px;margin:14px 0}h1{font-size:27px;margin:6px 0}h2{font-size:18px;margin:0 0 12px}p{color:#aeb8cc;line-height:1.5}.tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+button{border:0;border-radius:12px;padding:12px 15px;background:#2e7bd6;color:#fff;font-weight:800}.tab{background:#0c1221;border:1px solid #26314b}.tab.active{background:#18345a}
+input{width:100%;padding:13px;border-radius:12px;border:1px solid #303c56;background:#0b1120;color:#fff;font-size:18px;text-align:center;letter-spacing:2px}.row{display:flex;justify-content:space-between;padding:13px 0;border-bottom:1px solid #222c40}.row:last-child{border:0}
+.metric{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #222c40}.metric:last-child{border:0}.ok{color:#9fe0b4}.warn{color:#f5c66e}.danger{background:#7e2c38}.hidden{display:none}.code{text-align:center;font-size:32px;font-weight:900;letter-spacing:8px;padding:10px}
+</style>
+</head>
+<body><main>
+<div class="top"><div class="logo">SafeShare</div><div class="badge">Consent-first</div></div>
+<div class="card"><h1>Real-time two-phone demo</h1><p>Owner controls exactly what is shared. Viewer sees only approved fields. This demo uses Firebase Realtime Database when configured.</p>
+<div class="tabs"><button id="ownerTab" class="tab active">Owner</button><button id="viewerTab" class="tab">Viewer</button></div></div>
+
+<section id="owner">
+<div class="card"><h2>Pairing</h2><p>Create a six-digit code. Give it to the viewer. The code expires after 10 minutes in this demo.</p>
+<div id="code" class="code">------</div><button onclick="createPair()">Create pairing code</button><p id="pairMsg"></p></div>
+<div class="card"><h2>Sharing controls</h2>
+<div class="row"><span>Location</span><input id="location" type="checkbox" style="width:auto"></div>
+<div class="row"><span>Battery</span><input id="battery" type="checkbox" style="width:auto"></div>
+<div class="row"><span>Basic device info</span><input id="device" type="checkbox" style="width:auto"></div>
+<br><button onclick="publish()">Save & publish approved data</button><p id="ownerMsg"></p></div>
+</section>
+
+<section id="viewer" class="hidden">
+<div class="card"><h2>Connect to owner</h2><input id="viewerCode" maxlength="6" placeholder="Pairing code"><br><br><button onclick="connect()">Connect</button><p id="viewerMsg"></p></div>
+<div class="card"><h2>Dashboard</h2><div id="dashboard"><p>No connection yet.</p></div></div>
+</section>
+
+<div class="card"><h2>Privacy boundary</h2><p>This demo does not access passwords, private messages, other apps, hidden camera/microphone feeds, or unrestricted files. A production Android app must request OS permissions visibly and allow revocation.</p></div>
+</main>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-database.js";
+
+/* Replace these placeholders with your Firebase Web App config. */
+const firebaseConfig = {
+  apiKey: "AIzaSyCRLPBHSzvqyb98Q_q2sR9NTvycM0m_sMY",
+  authDomain: "safeshare-e52ad.firebaseapp.com",
+  databaseURL: "https://safeshare-e52ad-default-rtdb.firebaseio.com",
+  projectId: "safeshare-e52ad",
+  storageBucket: "safeshare-e52ad.firebasestorage.app",
+  messagingSenderId: "985062431019",
+  appId: "1:985062431019:web:b86dd7b7e3fba9c8c24d6e",
+  measurementId: "G-K7J6VJ8J1F"
+};
+const configured = !Object.values(firebaseConfig).some(v=>String(v).startsWith("YOUR_"));
+let db=null;
+if(configured){ db=getDatabase(initializeApp(firebaseConfig)); }
+
+const $=id=>document.getElementById(id);
+let localCode=localStorage.getItem("ss_code")||"";
+let viewerPair=localStorage.getItem("ss_viewer")||"";
+
+$("ownerTab").onclick=()=>{owner.classList.remove("hidden");viewer.classList.add("hidden")};
+$("viewerTab").onclick=()=>{viewer.classList.remove("hidden");owner.classList.add("hidden")};
+
+function msg(el,t,cls=""){el.textContent=t;el.className=cls}
+window.createPair=async()=>{
+ if(!db){msg($("pairMsg"),"Add your Firebase configuration first.","warn");return}
+ localCode=String(Math.floor(100000+Math.random()*900000));
+ localStorage.setItem("ss_code",localCode);
+ await set(ref(db,"pairings/"+localCode),{createdAt:Date.now(),expiresAt:Date.now()+600000,active:true});
+ $("code").textContent=localCode; msg($("pairMsg"),"Code created. Share it with the viewer.","ok");
+};
+async function collectApprovedData(){
+  const data={updatedAt:Date.now()};
+  if($("location").checked){
+    try{
+      const pos=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:10000,maximumAge:30000}));
+      data.location={status:"shared",latitude:Number(pos.coords.latitude.toFixed(6)),longitude:Number(pos.coords.longitude.toFixed(6)),accuracy:Math.round(pos.coords.accuracy||0)};
+    }catch(e){data.location={status:"shared",available:false,message:"Location permission was not granted or location is unavailable."};}
+  }else data.location={status:"not_shared"};
+  if($("battery").checked){
+    try{
+      if(navigator.getBattery){const b=await navigator.getBattery();data.battery={status:"shared",level:Math.round(b.level*100),charging:!!b.charging};}
+      else data.battery={status:"shared",available:false,message:"Battery information is not supported by this browser."};
+    }catch(e){data.battery={status:"shared",available:false,message:"Battery information unavailable."};}
+  }else data.battery={status:"not_shared"};
+  if($("device").checked){
+    data.device={status:"shared",platform:navigator.platform||"Unknown",language:navigator.language||"Unknown",screen:(screen.width||0)+"×"+(screen.height||0),browser:navigator.userAgent};
+  }else data.device={status:"not_shared"};
+  return data;
+}
+window.publish=async()=>{
+ if(!db||!localCode){msg($("ownerMsg"),"Create a pairing code first.","warn");return}
+ msg($("ownerMsg"),"Collecting only the data you approved…");
+ const data=await collectApprovedData();
+ await set(ref(db,"shares/"+localCode),data);
+ msg($("ownerMsg"),"Approved data published to the viewer.","ok");
 };
 window.connect=async()=>{
  if(!db){msg($("viewerMsg"),"Add your Firebase configuration first.","warn");return}

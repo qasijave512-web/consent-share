@@ -43,13 +43,14 @@ import { getDatabase, ref, set, get, onValue, remove } from "https://www.gstatic
 
 /* Replace these placeholders with your Firebase Web App config. */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.firebasestorage.app",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyCRLPBHSzvqyb98Q_q2sR9NTvycM0m_sMY",
+  authDomain: "safeshare-e52ad.firebaseapp.com",
+  databaseURL: "https://safeshare-e52ad-default-rtdb.firebaseio.com",
+  projectId: "safeshare-e52ad",
+  storageBucket: "safeshare-e52ad.firebasestorage.app",
+  messagingSenderId: "985062431019",
+  appId: "1:985062431019:web:b86dd7b7e3fba9c8c24d6e",
+  measurementId: "G-K7J6VJ8J1F"
 };
 const configured = !Object.values(firebaseConfig).some(v=>String(v).startsWith("YOUR_"));
 let db=null;
